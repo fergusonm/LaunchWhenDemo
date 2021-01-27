@@ -1,7 +1,7 @@
 # LaunchWhenDemo
 A demonstration of data loss using launchWhenResumed / launchWhenStarted.
 
-In this example I have two flows in a view model. Each are collected in a fragment. One is collected from within a `launchWhenStarted` block and the other is collected 
+In this example I have two flows in a view model. Each are collected in a fragment. One is collected from within a `launchWhenStarted` block and the other is collected by registering a lifecycle observer.
 
 Start the app and note the logs.
 
