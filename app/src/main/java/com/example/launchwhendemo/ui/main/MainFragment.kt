@@ -34,8 +34,16 @@ class MainFragment : Fragment() {
         savedInstanceState: Bundle?
     ) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel =
-            ViewModelProvider(this).get(MainViewModel::class.java)
+        viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
+
+        launchXJob = viewLifecycleOwner
+                .lifecycleScope
+                .launchWhenStarted {
+                    viewModel.flow.collect {
+                        print("********** View: launch when started collector received $it in lifecycle state ")
+                        println(viewLifecycleOwner.lifecycle.currentState.name)
+                    }
+                }
 
         viewModel.otherFlow
                 .onEach {
@@ -59,24 +67,12 @@ class MainFragment : Fragment() {
             })
     }
 
-    override fun onStart() {
-        super.onStart()
-
-        launchXJob = viewLifecycleOwner
-                .lifecycleScope
-                .launchWhenStarted {
-                    viewModel.flow.collect {
-                        print("********** View: launch when started collector received $it in lifecycle state ")
-                        println(viewLifecycleOwner.lifecycle.currentState.name)
-                    }
-                }
-    }
-
     override fun onStop() {
         super.onStop()
 
-        // !!!!!!!! Note, if this job is not canceled there will be event loss during configuration change
-        launchXJob?.cancel()
+        // !!!!!!!! Note, if this job is not canceled there may be event loss during configuration change.  Even if the job is cancelled the collector may
+        // be called during the lifecycle state you do not want. Eg. in the created state when you've used launchWhenStarted.
+//        launchXJob?.cancel()
         launchXJob = null
     }
 }
