@@ -7,8 +7,10 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
 import com.example.launchwhendemo.R
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicInteger
@@ -18,6 +20,9 @@ class MainFragment : Fragment() {
     companion object {
         fun newInstance() = MainFragment()
     }
+
+    private var job: Job? = null
+    private var launchXJob: Job? = null
 
     private lateinit var viewModel: MainViewModel
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -32,15 +37,12 @@ class MainFragment : Fragment() {
         viewModel =
             ViewModelProvider(this).get(MainViewModel::class.java)
 
-        // Only collect in the resumed state
-        viewLifecycleOwner
-                .lifecycleScope
-                .launchWhenStarted {
-                    viewModel.flow.collect {
-                        print("********** View: Received $it in lifecycle state ")
-                        println(viewLifecycleOwner.lifecycle.currentState.name)
-                    }
+        viewModel.otherFlow
+                .onEach {
+                    print("********** View: observe in collector received $it in lifecycle state ")
+                    println(viewLifecycleOwner.lifecycle.currentState.name)
                 }
+                .observeIn(this)
 
         // Notify the view model of a lifecycle event,
         // specifically the view lifecycle, just to cause
@@ -52,8 +54,30 @@ class MainFragment : Fragment() {
         viewLifecycleOwner.lifecycle.addObserver(
             LifecycleEventObserver {
                     source: LifecycleOwner, event: Lifecycle.Event ->
+                println("********** event: ${event.name}")
                 viewModel.lifecycleEvent(event.name)
             })
+    }
+
+    override fun onStart() {
+        super.onStart()
+
+        launchXJob = viewLifecycleOwner
+                .lifecycleScope
+                .launchWhenStarted {
+                    viewModel.flow.collect {
+                        print("********** View: launch when started collector received $it in lifecycle state ")
+                        println(viewLifecycleOwner.lifecycle.currentState.name)
+                    }
+                }
+    }
+
+    override fun onStop() {
+        super.onStop()
+
+        // !!!!!!!! Note, if this job is not canceled there will be event loss during configuration change
+        launchXJob?.cancel()
+        launchXJob = null
     }
 }
 
@@ -64,13 +88,17 @@ class MainViewModel : ViewModel() {
     private val channel = Channel<String>(Channel.BUFFERED)
     val flow = channel.receiveAsFlow()
 
+    private val otherChannel = Channel<String>(Channel.BUFFERED)
+    val otherFlow = otherChannel.receiveAsFlow()
+
     fun lifecycleEvent(eventName: String) {
         viewModelScope.launch {
             // Send the event name down the flow to make some traffic
             val i = counter.getAndIncrement()
             val event = "$eventName $i"
-            println("********** ViewModel: Emitting $event on the flow")
-            channel.send("$event")
+            println("********** ViewModel: Emitting $event on the flows")
+            channel.send(event)
+            otherChannel.send(event)
         }
     }
 }
