@@ -70,10 +70,12 @@ class MainFragment : Fragment() {
     override fun onStop() {
         super.onStop()
 
-        // !!!!!!!! Note, if this job is not canceled there may be event loss during configuration change.  Even if the job is cancelled the collector may
-        // be called during the lifecycle state you do not want. Eg. in the created state when you've used launchWhenStarted.
-//        launchXJob?.cancel()
-        launchXJob = null
+        // !!!!!!!! Note, if this job is not canceled there may be event loss during
+        // configuration change.  Even if the job is cancelled the collector may
+        // be called during the lifecycle state you do not want. Eg. in the
+        // created state when you've used launchWhenStarted.
+        launchXJob?.cancel()
+        launchXJob = null // You may also need to re-register the collector to handle possible STOP -> START lifecycle events
     }
 }
 
