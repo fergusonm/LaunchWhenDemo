@@ -11,6 +11,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
 
 class MainFragment : Fragment() {
 
@@ -34,7 +35,7 @@ class MainFragment : Fragment() {
         // Only collect in the resumed state
         viewLifecycleOwner
                 .lifecycleScope
-                .launchWhenResumed {
+                .launchWhenStarted {
                     viewModel.flow.collect {
                         print("********** View: Received $it in lifecycle state ")
                         println(viewLifecycleOwner.lifecycle.currentState.name)
@@ -58,14 +59,18 @@ class MainFragment : Fragment() {
 
 class MainViewModel : ViewModel() {
 
+    private var counter = AtomicInteger(0)
+
     private val channel = Channel<String>(Channel.BUFFERED)
     val flow = channel.receiveAsFlow()
 
     fun lifecycleEvent(eventName: String) {
         viewModelScope.launch {
             // Send the event name down the flow to make some traffic
-            println("********** ViewModel: Emitting $eventName on the flow")
-            channel.send(eventName)
+            val i = counter.getAndIncrement()
+            val event = "$eventName $i"
+            println("********** ViewModel: Emitting $event on the flow")
+            channel.send("$event")
         }
     }
 }
