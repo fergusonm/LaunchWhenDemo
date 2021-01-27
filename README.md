@@ -1,6 +1,8 @@
 # LaunchWhenDemo
 A demonstration of data loss using launchWhenResumed / launchWhenStarted.
 
+In this example I have two flows in a view model. Each are collected in a fragment. One is collected from within a `launchWhenStarted` block and the other is collected 
+
 Start the app and note the logs.
 
 You should see something like 
@@ -43,4 +45,4 @@ Rotate the device to perform a configuration change.
 ********** event: ON_RESUME
 ```
 
-Note the `ON_DESTROY 5` event is never received by the "launch when" observer but it is by the "observe in" observer.
+Note the `ON_DESTROY 5` event is never received by the "launch when" observer but it is by the "observe in" observer. Also note that the "launch when" observer collected the `ON_STOP 4` event in the `CREATED` lifecycle state.
